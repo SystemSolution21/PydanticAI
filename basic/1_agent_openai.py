@@ -1,5 +1,4 @@
 import os
-
 from dotenv import load_dotenv
 from getpass import getpass
 
@@ -7,8 +6,8 @@ from pydantic_ai import Agent
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models.openai import OpenAIModel
 
-import openai
-from openai import OpenAIError, APIConnectionError, AuthenticationError, RateLimitError
+# Import error handling module
+from openai_error import handle_openai_error
 
 # Load environment variables from .env file
 load_dotenv()
@@ -29,26 +28,11 @@ def agent_openai(user_prompt: str) -> None:
     try:
         result: AgentRunResult[str] = agent.run_sync(user_prompt=user_prompt)
         print(result.output)
-
-    except AuthenticationError as e:
-        print(f"Authentication Error: {e}")
-        print("Please check your API key and make sure it's valid.")
-        # Optionally prompt for a new API key
-        os.environ["OPENAI_API_KEY"] = getpass(prompt="Enter a new OpenAI API Key: ")
-
-    except APIConnectionError as e:
-        print(f"Connection Error: {e}")
-        print("Check your network settings, proxy configuration, or firewall rules.")
-
-    except RateLimitError as e:
-        print(f"Rate Limit Error: {e}")
-        print("You've hit the rate limit. Please wait before trying again.")
-
-    except OpenAIError as e:
-        print(f"OpenAI API Error: {e}")
-
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        # Handle all errors
+        new_api_key: str | None = handle_openai_error(e)
+        if new_api_key:
+            os.environ["OPENAI_API_KEY"] = new_api_key
 
 
 # Main entrypoint
