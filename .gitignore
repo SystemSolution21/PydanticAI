@@ -17,3 +17,9 @@ wheels/
 
 # Pytest cache
 .pytest_cache/
+
+# VSCode
+.vscode/
+
+# logfire
+.logfire/
