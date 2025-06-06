@@ -1,4 +1,5 @@
 import os
+import time
 from dotenv import load_dotenv
 from getpass import getpass
 
@@ -7,7 +8,7 @@ from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models.openai import OpenAIModel
 
 # Import error handling module
-from openai_error import handle_openai_error, OpenAIError
+from openai_error import handle_openai_error
 
 # Load environment variables from .env file
 load_dotenv()
@@ -30,45 +31,52 @@ def agent_openai(user_prompt: str) -> None:
     # Confirm OpenAI API key
     if not os.environ.get("OPENAI_API_KEY"):
         os.environ["OPENAI_API_KEY"] = getpass(prompt="Enter OpenAI API Key: ")
-        print("OpenAI API key is set.")
+        time.sleep(3)
+        print("OpenAI API key is updated.")
 
+    # Run agent
     try:
         result: AgentRunResult[str] = agent.run_sync(user_prompt=user_prompt)
-        print(f"OpenAI Agent: {result.output}")
+        print(f"\nOpenAI Agent: {result.output}")
 
     except Exception as e:
+
         # Handle all errors
         error_message, new_api_key = handle_openai_error(error=e)
         print(error_message)
 
-        # If authentication error occurred and we got a new key
-        if new_api_key:
-            # Clear the old key first
+        # Authentication error
+        if "Authentication Error" in error_message:
+
+            # Clear the old API key
             if "OPENAI_API_KEY" in os.environ:
                 del os.environ["OPENAI_API_KEY"]
 
-            # Set the new key
-            os.environ["OPENAI_API_KEY"] = new_api_key
-            print("A new API key was provided. OpenAI API key is updated.")
+            # Set the new API key
+            os.environ["OPENAI_API_KEY"] = getpass(
+                prompt="Enter a new OpenAI API Key: "
+            )
+            time.sleep(3)
+            print("A new OpenAI API key is updated.")
 
-            # Try again with the new API key
+            # Run the agent again with the new API key
             try:
                 result: AgentRunResult[str] = agent.run_sync(user_prompt=user_prompt)
-                print(f"OpenAI Agent: {result.output}")
+                print(f"\nOpenAI Agent: {result.output}")
 
             except Exception as e:
-                # If it fails again, handle the error but don't retry
                 error_message, new_api_key = handle_openai_error(error=e)
                 print(error_message)
 
 
 # Main entrypoint
 if __name__ == "__main__":
-    print("Welcome to the OpenAI Agent CLI. Type 'q' to quit.")
     while True:
         try:
-            user_prompt: str = input("\nYour question: ")
-            if user_prompt.lower() in ["q", "quit", "exit"]:
+            user_prompt: str = input(
+                "\nAsk any question to the OpenAI Agent. Type 'q' to quit: "
+            )
+            if user_prompt.lower() in "q":
                 print("Goodbye!")
                 break
 

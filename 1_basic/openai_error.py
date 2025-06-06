@@ -2,8 +2,6 @@
 Module for handling OpenAI API errors with clean, readable error messages.
 """
 
-from getpass import getpass
-from typing import Optional, Tuple
 
 from openai import (
     OpenAIError,
@@ -14,7 +12,7 @@ from openai import (
 )
 
 
-def handle_openai_error(error: Exception) -> Tuple[str, Optional[str]]:
+def handle_openai_error(error: Exception) -> list[str]:
     """
     Handle OpenAI API errors and return clean, readable error messages.
     Also handles prompting for a new API key in case of AuthenticationError.
@@ -23,59 +21,56 @@ def handle_openai_error(error: Exception) -> Tuple[str, Optional[str]]:
         error: The exception to handle
 
     Returns:
-        A tuple containing:
-            - str: The formatted, readable error message.
-            - Optional[str]: A new API key if an authentication error prompted for one, otherwise None.
+        - str: The formatted, readable error message.
     """
-    message_parts = []
-    new_api_key_to_return: Optional[str] = None
+    error_message: list[str] = []
 
+    # Authentication error
     if isinstance(error, AuthenticationError):
-        message_parts.append(f"Authentication Error: {error.message}")
-        message_parts.append("Please check your API key and make sure it's valid.")
-        # Prompt for a new API key
-        new_api_key_to_return = getpass(prompt="Enter a new OpenAI API Key: ")
+        error_message.append(f"Authentication Error: {error.message}")
+        error_message.append("Please check your API key and make sure it's valid.")
 
+    # API Connection error
     elif isinstance(error, APIConnectionError):
-        message_parts.append(f"Connection Error: {error.message}")
-        message_parts.append(
+        error_message.append(f"Connection Error: {error.message}")
+        error_message.append(
             "Check your network settings, proxy configuration, or firewall rules."
         )
 
+    # Rate limit error
     elif isinstance(error, RateLimitError):
-        message_parts.append(f"Rate Limit Error: {error.message}")
-        message_parts.append(
+        error_message.append(f"Rate Limit Error: {error.message}")
+        error_message.append(
             "You've hit the rate limit. Please wait before trying again."
         )
 
+    # API Status error
     elif isinstance(error, APIStatusError):
-        # For any status error, extract useful information
-        message_parts.append(f"API Status Error ({error.status_code}): {error.message}")
+        error_message.append(f"API Status Error ({error.status_code}): {error.message}")
         if error.request_id:
-            message_parts.append(f"Request ID: {error.request_id}")
+            error_message.append(f"Request ID: {error.request_id}")
         if hasattr(error, "code") and error.code:
-            message_parts.append(f"Error code: {error.code}")
+            error_message.append(f"Error code: {error.code}")
 
+    # OpenAI error
     elif isinstance(error, OpenAIError):
-        # For other OpenAI errors, use the message attribute when available
         if hasattr(error, "message"):
-            message_parts.append(f"OpenAI Error: {error.message}")  # type: ignore
+            error_message.append(f"OpenAI Error: {error.message}")  # type: ignore
         else:
-            error_message = extract_error_message(error_str=str(object=error))
-            message_parts.append(f"OpenAI Error: {error_message}")
+            ext_err_mes = extract_error_message(error_str=str(object=error))
+            error_message.append(f"OpenAI Error: {ext_err_mes}")
 
+    # Other errors
     else:
-        error_message: str = extract_error_message(error_str=str(object=error))
-        # Check if this is an API key error that wasn't caught by the AuthenticationError check
-        if "Incorrect API key provided" in error_message or "API key" in error_message:
-            message_parts.append(f"Authentication Error: {error_message}")
-            message_parts.append("Please check your API key and make sure it's valid.")
-            # Prompt for a new API key
-            new_api_key_to_return = getpass(prompt="Enter a new OpenAI API Key: ")
-        else:
-            message_parts.append(f"Unexpected error occurred: {error_message}")
+        ext_err_mes: str = extract_error_message(error_str=str(object=error))
+        if "Incorrect API key provided" in ext_err_mes or "API key" in ext_err_mes:
+            error_message.append(f"Authentication Error: {ext_err_mes}")
+            error_message.append("Please check your API key and make sure it's valid.")
 
-    return "\n".join(message_parts), new_api_key_to_return
+        else:
+            error_message.append(f"Unexpected error occurred: {ext_err_mes}")
+
+    return error_message
 
 
 def extract_error_message(error_str: str) -> str:
