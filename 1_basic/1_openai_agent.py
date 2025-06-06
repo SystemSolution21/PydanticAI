@@ -7,7 +7,7 @@ from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models.openai import OpenAIModel
 
 # Import error handling module
-from openai_error import handle_openai_error
+from openai_error import handle_openai_error, OpenAIError
 
 # Load environment variables from .env file
 load_dotenv()
@@ -38,7 +38,8 @@ def agent_openai(user_prompt: str) -> None:
 
     except Exception as e:
         # Handle all errors
-        new_api_key: str | None = handle_openai_error(e)
+        error_message, new_api_key = handle_openai_error(error=e)
+        print(error_message)
 
         # If authentication error occurred and we got a new key
         if new_api_key:
@@ -48,7 +49,7 @@ def agent_openai(user_prompt: str) -> None:
 
             # Set the new key
             os.environ["OPENAI_API_KEY"] = new_api_key
-            print("OpenAI API key is set.")
+            print("A new API key was provided. OpenAI API key is updated.")
 
             # Try again with the new API key
             try:
@@ -57,7 +58,8 @@ def agent_openai(user_prompt: str) -> None:
 
             except Exception as e:
                 # If it fails again, handle the error but don't retry
-                handle_openai_error(error=e)
+                error_message, new_api_key = handle_openai_error(error=e)
+                print(error_message)
 
 
 # Main entrypoint
