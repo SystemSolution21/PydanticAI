@@ -31,7 +31,6 @@ def agent_openai(user_prompt: str) -> None:
     # Confirm OpenAI API key
     if not os.environ.get("OPENAI_API_KEY"):
         os.environ["OPENAI_API_KEY"] = getpass(prompt="Enter OpenAI API Key: ")
-        time.sleep(3)
         print("OpenAI API key is updated.")
 
     # Run agent
@@ -42,12 +41,11 @@ def agent_openai(user_prompt: str) -> None:
     except Exception as e:
 
         # Handle all errors
-        error_message, new_api_key = handle_openai_error(error=e)
+        error_message = handle_openai_error(error=e)
         print(error_message)
 
         # Authentication error
         if "Authentication Error" in error_message:
-
             # Clear the old API key
             if "OPENAI_API_KEY" in os.environ:
                 del os.environ["OPENAI_API_KEY"]
@@ -56,17 +54,7 @@ def agent_openai(user_prompt: str) -> None:
             os.environ["OPENAI_API_KEY"] = getpass(
                 prompt="Enter a new OpenAI API Key: "
             )
-            time.sleep(3)
             print("A new OpenAI API key is updated.")
-
-            # Run the agent again with the new API key
-            try:
-                result: AgentRunResult[str] = agent.run_sync(user_prompt=user_prompt)
-                print(f"\nOpenAI Agent: {result.output}")
-
-            except Exception as e:
-                error_message, new_api_key = handle_openai_error(error=e)
-                print(error_message)
 
 
 # Main entrypoint
@@ -82,5 +70,5 @@ if __name__ == "__main__":
 
             agent_openai(user_prompt=user_prompt)
         except KeyboardInterrupt:
-            print("\nGoodbye!")
+            print("Goodbye!")
             break

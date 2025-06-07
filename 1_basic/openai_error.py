@@ -2,7 +2,6 @@
 Module for handling OpenAI API errors with clean, readable error messages.
 """
 
-
 from openai import (
     OpenAIError,
     APIConnectionError,
@@ -12,7 +11,7 @@ from openai import (
 )
 
 
-def handle_openai_error(error: Exception) -> list[str]:
+def handle_openai_error(error: Exception) -> str:
     """
     Handle OpenAI API errors and return clean, readable error messages.
     Also handles prompting for a new API key in case of AuthenticationError.
@@ -23,52 +22,48 @@ def handle_openai_error(error: Exception) -> list[str]:
     Returns:
         - str: The formatted, readable error message.
     """
-    error_message: list[str] = []
+    error_message: str = ""
 
     # Authentication error
     if isinstance(error, AuthenticationError):
-        error_message.append(f"Authentication Error: {error.message}")
-        error_message.append("Please check your API key and make sure it's valid.")
+        error_message = f"Authentication Error: {error.message}"
+        error_message += " Please check your API key and make sure it's valid."
 
     # API Connection error
     elif isinstance(error, APIConnectionError):
-        error_message.append(f"Connection Error: {error.message}")
-        error_message.append(
-            "Check your network settings, proxy configuration, or firewall rules."
-        )
+        error_message = f"Connection Error: {error.message}"
+        error_message += " Please check your network settings, proxy configuration, or firewall rules."
 
     # Rate limit error
     elif isinstance(error, RateLimitError):
-        error_message.append(f"Rate Limit Error: {error.message}")
-        error_message.append(
-            "You've hit the rate limit. Please wait before trying again."
-        )
+        error_message = f"Rate Limit Error: {error.message}"
+        error_message += " You've hit the rate limit. Please wait before trying again."
 
     # API Status error
     elif isinstance(error, APIStatusError):
-        error_message.append(f"API Status Error ({error.status_code}): {error.message}")
+        error_message = f"API Status Error ({error.status_code}): {error.message}"
         if error.request_id:
-            error_message.append(f"Request ID: {error.request_id}")
+            error_message += f" Request ID: {error.request_id}"
         if hasattr(error, "code") and error.code:
-            error_message.append(f"Error code: {error.code}")
+            error_message += f" Error code: {error.code}"
 
     # OpenAI error
     elif isinstance(error, OpenAIError):
         if hasattr(error, "message"):
-            error_message.append(f"OpenAI Error: {error.message}")  # type: ignore
+            error_message = f"OpenAI Error: {error.message}"  # type: ignore
         else:
             ext_err_mes = extract_error_message(error_str=str(object=error))
-            error_message.append(f"OpenAI Error: {ext_err_mes}")
+            error_message = f"OpenAI Error: {ext_err_mes}"
 
     # Other errors
     else:
         ext_err_mes: str = extract_error_message(error_str=str(object=error))
         if "Incorrect API key provided" in ext_err_mes or "API key" in ext_err_mes:
-            error_message.append(f"Authentication Error: {ext_err_mes}")
-            error_message.append("Please check your API key and make sure it's valid.")
+            error_message = f"Authentication Error: {ext_err_mes}"
+            error_message += "Please check your API key and make sure it's valid."
 
         else:
-            error_message.append(f"Unexpected error occurred: {ext_err_mes}")
+            error_message = f"Unexpected error occurred: {ext_err_mes}"
 
     return error_message
 
